@@ -1,0 +1,59 @@
+{{- if and (eq .Values.githubProxy.enabled true) (eq .Values.ingress.enabled true) }}
+{{- if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion -}}
+apiVersion: networking.k8s.io/v1
+{{- else -}}
+apiVersion: networking.k8s.io/v1beta1
+{{- end }}
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/auth-url: "https://$host/oauth2/auth"
+    nginx.ingress.kubernetes.io/auth-signin: "https://$host/oauth2/start?rd=$escaped_request_uri"
+  name: {{ include "isitup.fullname" . }}
+spec:
+  rules:
+  # - host: {{ .Values.githubProxy.endpoint }}
+  - http:
+      paths:
+      - backend:
+          service:
+            name: {{ include "isitup.fullname" . }}
+            port: 
+              number: 80
+        pathType: ImplementationSpecific
+        path: /
+{{- end }}
+
+---
+
+{{- if and (eq .Values.githubProxy.enabled true) (eq .Values.ingress.enabled true) }}
+{{- if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion -}}
+apiVersion: networking.k8s.io/v1
+{{- else -}}
+apiVersion: networking.k8s.io/v1beta1
+{{- end }}
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    kubernetes.io/ingress.class: nginx
+  name: external-auth-oauth2
+spec:
+  rules:
+  # - host: {{ .Values.githubProxy.endpoint }}
+  - http:
+      paths:
+      - backend:
+          service:
+            name: oauth2-proxy
+            port: 
+              number: 4180
+        pathType: ImplementationSpecific
+        path: /oauth2
+  tls:
+  - hosts:
+    - {{ .Values.githubProxy.endpoint }}
+    secretName: isitup-tls
+{{- end }}
